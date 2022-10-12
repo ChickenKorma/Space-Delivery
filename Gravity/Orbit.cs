@@ -1,9 +1,6 @@
-using System.Collections;
-using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 using UnityEngine;
 
-public class Planet : MonoBehaviour
+public class Orbit : MonoBehaviour
 {
     [SerializeField] private float semiMajor;
     [SerializeField] private float semiMinor;
@@ -34,6 +31,8 @@ public class Planet : MonoBehaviour
         CalculateOrbit();
 
         DrawOrbit();
+
+        transform.position = GetOrbitPositionWorld(currentAngle);
     }
 
     private void Update()
@@ -41,11 +40,9 @@ public class Planet : MonoBehaviour
         CalculateOrbit();
         DrawOrbit();
 
-        transform.position = GetOrbitPosition(currentAngle);
+        transform.position = GetOrbitPositionWorld(currentAngle);
 
         currentAngle += speed * Time.deltaTime;
-
-        
     }
 
     // Calculates the orbit plane and tangent vectors
@@ -60,10 +57,12 @@ public class Planet : MonoBehaviour
         focusPosition = orbitPlane.normalized * focalLength;
     }
 
-    // Calculates and returns the position along the orbit at the given orbit angle
-    private Vector3 GetOrbitPosition(float angle)
+    // Calculates and returns the world position along the orbit at the given orbit angle
+    private Vector3 GetOrbitPositionWorld(float angle)
     {
-        return focusPosition + (semiMajor * orbitPlane * Cos(angle)) + (semiMinor * orbitTangent * Sin(angle));
+        Vector3 orbitPos = (semiMajor * orbitPlane * Cos(angle)) + (semiMinor * orbitTangent * Sin(angle));
+
+        return orbitPos + focusPosition + transform.parent.position;
     }
 
     // Calculates and sets the render positions of the line renderer along the path of the orbit
@@ -77,7 +76,7 @@ public class Planet : MonoBehaviour
         {
             float angle = angleStep * i;
 
-            points[i] = GetOrbitPosition(angle);
+            points[i] = GetOrbitPositionWorld(angle);
         }
 
         orbitRenderer.positionCount = renderPoints;
