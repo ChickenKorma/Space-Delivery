@@ -4,38 +4,25 @@ using UnityEngine;
 [RequireComponent(typeof(LineRenderer))]
 public class Body : MonoBehaviour
 {
-    [SerializeField] private float mass;
-
-    public float Mass { get { return mass; } }
+    public float Mass { get { return rb.mass; } }
 
     [SerializeField] private Vector3 initialVelocity;
+    [SerializeField] private Vector3 initialAngularVelocity;
 
-    protected Vector3 velocity;
+    public Vector3 Velocity { get { return rb.velocity; } }
 
-    public Vector3 Velocity { get { return velocity; } }
+    public Vector3 Position { get { return rb.position; } }
 
-    private Vector3 position;
-
-    public Vector3 Position { get { return position; } }
-
-    private Rigidbody rb;
+    protected Rigidbody rb;
 
     private void Awake()
     {
         rb = GetComponent<Rigidbody>();
-        rb.mass = mass;
 
-        position = rb.position;
+        rb.velocity = initialVelocity;
 
-        velocity = initialVelocity;
+        rb.angularVelocity = initialAngularVelocity * Mathf.Deg2Rad;
     }
 
-    public virtual void UpdateVelocity(Vector3 acceleration, float deltaTime) => velocity += acceleration * deltaTime;
-
-    public void UpdatePosition(float deltaTime)
-    {
-        position += velocity * deltaTime;
-
-        rb.MovePosition(position - Gravity.Instance.ReferenceBody.Position);
-    }
+    public virtual void UpdateVelocity(Vector3 acceleration, float deltaTime) => rb.velocity += acceleration * deltaTime;
 }

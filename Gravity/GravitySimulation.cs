@@ -8,16 +8,6 @@ public class GravitySimulation : MonoBehaviour
         {
             body.UpdateVelocity(CalculateGravityAcceleration(body), Time.fixedDeltaTime);
         }
-
-        Gravity.Instance.ReferenceBody.UpdatePosition(Time.fixedDeltaTime);
-
-        foreach(Body body in Gravity.Instance.Bodies)
-        {
-            if (!body.Equals(Gravity.Instance.ReferenceBody))
-            {
-                body.UpdatePosition(Time.fixedDeltaTime);
-            }
-        }
     }
 
     private Vector3 CalculateGravityAcceleration(Body thisBody)
