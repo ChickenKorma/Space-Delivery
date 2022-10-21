@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public class Gravity : MonoBehaviour
@@ -8,13 +9,17 @@ public class Gravity : MonoBehaviour
 
     public float G { get { return g; } }
 
-    [SerializeField] private Body referenceBody;
+    [SerializeField] private Transform referenceBody;
 
-    public Body ReferenceBody { get { return referenceBody; } }
+    public Transform ReferenceBody { get { return referenceBody; } }
 
-    private Body[] bodies;
+    private CelestialBody[] bodies;
 
-    public Body[] Bodies { get { return bodies; } } 
+    public CelestialBody[] Bodies { get { return bodies; } }
+
+    private List<Transform> objects = new();
+
+    public List<Transform> Objects { get { return objects; } }
 
     private void Awake()
     {
@@ -27,9 +32,18 @@ public class Gravity : MonoBehaviour
             Instance = this;
         }
 
-        if(bodies == null)
+        bodies = FindObjectsOfType<CelestialBody>();
+
+        foreach(CelestialBody body in bodies)
         {
-            bodies = FindObjectsOfType<Body>();
+            objects.Add(body.transform);
+        }
+
+        Spacecraft[] spacecrafts = FindObjectsOfType<Spacecraft>();
+
+        foreach(Spacecraft spacecraft in spacecrafts)
+        {
+            objects.Add(spacecraft.transform);
         }
     }
 }

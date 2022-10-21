@@ -21,13 +21,13 @@ public class OrbitDraw : MonoBehaviour
 
         for (int i = 0; i < vBodies.Length; i++)
         {
-            Body body = Gravity.Instance.Bodies[i];
+            CelestialBody body = Gravity.Instance.Bodies[i];
 
             bool draw = !body.Equals(Gravity.Instance.ReferenceBody);
 
             vBodies[i] = new VirtualBody(body, steps, draw);
 
-            if (body.Equals(Gravity.Instance.ReferenceBody))
+            if (body.transform == Gravity.Instance.ReferenceBody)
             {
                 referenceBody = vBodies[i];
             }
@@ -96,7 +96,7 @@ public class OrbitDraw : MonoBehaviour
 
 class VirtualBody
 {
-    private Body body;
+    private CelestialBody body;
 
     private Vector3 position;
 
@@ -114,7 +114,7 @@ class VirtualBody
 
     private bool draw;
 
-    public VirtualBody(Body body, int steps, bool draw)
+    public VirtualBody(CelestialBody body, int steps, bool draw)
     {
         this.body = body;
 

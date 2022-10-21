@@ -14,6 +14,11 @@ public class InputManager : MonoBehaviour
 
     public Action<float> rollEvent = delegate { };
 
+    public Action autoAlignEvent = delegate { };
+    public Action targetLockEvent = delegate { };
+
+    public Action<bool> matchVelocityEvent = delegate { };
+
     private void Awake()
     {
         if(Instance != null)
@@ -42,6 +47,14 @@ public class InputManager : MonoBehaviour
         playerInputActions.Game.Roll.started += OnRoll;
         playerInputActions.Game.Roll.performed += OnRoll;
         playerInputActions.Game.Roll.canceled += OnRoll;
+
+        playerInputActions.Game.AutoAlign.performed += OnAutoAlign;
+
+        playerInputActions.Game.TargetLock.performed += OnTargetLock;
+
+        playerInputActions.Game.MatchVelocity.started += OnMatchVelocity;
+        playerInputActions.Game.MatchVelocity.performed += OnMatchVelocity;
+        playerInputActions.Game.MatchVelocity.canceled += OnMatchVelocity;
     }
 
     private void OnDisable()
@@ -58,21 +71,26 @@ public class InputManager : MonoBehaviour
         playerInputActions.Game.Roll.performed -= OnRoll;
         playerInputActions.Game.Roll.canceled -= OnRoll;
 
+        playerInputActions.Game.AutoAlign.performed -= OnAutoAlign;
+
+        playerInputActions.Game.TargetLock.performed -= OnTargetLock;
+
+        playerInputActions.Game.MatchVelocity.started -= OnMatchVelocity;
+        playerInputActions.Game.MatchVelocity.performed -= OnMatchVelocity;
+        playerInputActions.Game.MatchVelocity.canceled -= OnMatchVelocity;
+
         playerInputActions.Disable();
     }
 
-    private void OnThrust(InputAction.CallbackContext context)
-    {
-        thrustEvent.Invoke(context.ReadValue<Vector3>());
-    }
+    private void OnThrust(InputAction.CallbackContext context) => thrustEvent.Invoke(context.ReadValue<Vector3>());
 
-    private void OnRotate(InputAction.CallbackContext context)
-    {
-        rotateEvent.Invoke(context.ReadValue<Vector2>());
-    }
+    private void OnRotate(InputAction.CallbackContext context) => rotateEvent.Invoke(context.ReadValue<Vector2>());
 
-    private void OnRoll(InputAction.CallbackContext context)
-    {
-        rollEvent.Invoke(context.ReadValue<float>());
-    }
+    private void OnRoll(InputAction.CallbackContext context) => rollEvent.Invoke(context.ReadValue<float>());
+
+    private void OnAutoAlign(InputAction.CallbackContext context) => autoAlignEvent.Invoke();
+
+    private void OnTargetLock(InputAction.CallbackContext context) => targetLockEvent.Invoke();
+
+    private void OnMatchVelocity(InputAction.CallbackContext context) => matchVelocityEvent.Invoke(!context.canceled);
 }
