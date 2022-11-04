@@ -2,40 +2,46 @@ using UnityEngine;
 
 public class Spacecraft : MonoBehaviour
 {
-    [SerializeField] private float thrustStrength;
-    [SerializeField] private float rotateSpeed;
+    private Rigidbody _rb;
 
-    protected Vector3 thrustAcc;
-    private Vector3 matchingAcc;
-    private Vector3 totalEngineAcc;
+    public Vector3 Velocity { get { return _rb.velocity; } }
 
-    protected Vector3 torqueAcc;
+    private Vector3 _totalEngineAcc;
+    protected Vector3 _thrustAcc;
+    private Vector3 _matchingAcc;
 
-    private Rigidbody rb;
+    protected Vector3 _torqueAcc;
 
-    public bool autoAlignActive { get; protected set; }
+    public CelestialBody Target { get; private set; }
+    public CelestialBody LockedTarget { get; private set; }
 
-    private static float minAutoAlignDist = 300f;
+    public bool AutoAlignActive { get; protected set; }
+    public bool MatchVelocityActive { get; protected set; }
 
-    public CelestialBody target { get; private set; }
-    public CelestialBody lockedTarget { get; private set; }
+    [Header("Spacecraft Stats")]
+    [SerializeField] private float _thrustStrength;
+    [SerializeField] private float _rotateSpeed;
 
-    private static float maxTargetAngle = 70f;
+    private static readonly float _minAutoAlignDist = 300f;
+    private static readonly float _maxTargetAngle = 70f;
 
-    public bool matchVelocityActive { get; protected set; }
+    [Header("Engine Particle Systems")]
+    [SerializeField] private ParticleSystem[] _xPosEnginePSs;
+    [SerializeField] private ParticleSystem[] _xNegEnginePSs;
+    [SerializeField] private ParticleSystem[] _yPosEnginePSs;
+    [SerializeField] private ParticleSystem[] _yNegEnginePSs;
+    [SerializeField] private ParticleSystem[] _zPosEnginePSs;
+    [SerializeField] private ParticleSystem[] _zNegEnginePSs;
 
-    [SerializeField] private ParticleSystem[] xPosEngines;
-    [SerializeField] private ParticleSystem[] xNegEngines;
-    [SerializeField] private ParticleSystem[] yPosEngines;
-    [SerializeField] private ParticleSystem[] yNegEngines;
-    [SerializeField] private ParticleSystem[] zPosEngines;
-    [SerializeField] private ParticleSystem[] zNegEngines;
+    private Camera _cam;
 
     private void Awake()
     {
-        rb = GetComponent<Rigidbody>();
+        _rb = GetComponent<Rigidbody>();
 
-        autoAlignActive = false;
+        AutoAlignActive = false;
+
+        _cam = Camera.main;
     }
 
     private void Update()
@@ -47,7 +53,7 @@ public class Spacecraft : MonoBehaviour
     {
         CelestialBody nearestBody = GetNearestBody();
 
-        if (autoAlignActive && nearestBody != null)
+        if (AutoAlignActive && nearestBody != null)
         {
             AutoAlign(nearestBody);
         }
@@ -56,112 +62,121 @@ public class Spacecraft : MonoBehaviour
             UpdateRotation();
         }
 
-        target = GetViewedBody();
+        Target = GetViewedBody();
 
         UpdateMatchingAcceleration();
 
         UpdatePhysics();
     }
 
+    // Calculates and applies the total acceleration to the attatched rigidbody, sum of the engien thrust and gravity
     private void UpdatePhysics()
     {
-        totalEngineAcc = ClampAxes(matchingAcc + (rb.rotation * thrustAcc), 1f);
+        _totalEngineAcc = ClampAxes(_matchingAcc + (_rb.rotation * _thrustAcc), 1f);
 
-        Vector3 totalAcceleration = GravitySimulation.CalculateGravityAcceleration(rb.position) + totalEngineAcc * thrustStrength;
+        Vector3 totalAcceleration = GravitySimulation.CalculateGravityAcceleration(_rb.position) + _totalEngineAcc * _thrustStrength;
 
-        rb.AddForce(totalAcceleration, ForceMode.Acceleration);
+        _rb.AddForce(totalAcceleration, ForceMode.Acceleration);
     }
 
+    // Rotates attatched rigidbody by the current torque and spacecraft rotation speed
     private void UpdateRotation()
     {
-        Quaternion deltaRotation = Quaternion.Euler(torqueAcc * rotateSpeed * Time.fixedDeltaTime);
+        Quaternion deltaRotation = Quaternion.Euler(_torqueAcc * _rotateSpeed * Time.fixedDeltaTime);
 
-        rb.MoveRotation(rb.rotation * deltaRotation);
+        _rb.MoveRotation(_rb.rotation * deltaRotation);
     } 
 
+    // Rotates attatched rigidbody to align the up direction with the direction from the nearest body to the rigidbody
     private void AutoAlign(CelestialBody nearestBody)
     {
-        Vector3 bodyUp = rb.position - nearestBody.Position;
+        Vector3 bodyUp = _rb.position - nearestBody.Position;
         Vector3 spacecraftUp = transform.up;
 
         Quaternion alignRotation = Quaternion.FromToRotation(spacecraftUp, bodyUp);
-
-        rb.MoveRotation(Quaternion.Lerp(rb.rotation, rb.rotation * alignRotation, rotateSpeed * Time.fixedDeltaTime / 50));
+        
+        _rb.MoveRotation(Quaternion.Lerp(_rb.rotation, _rb.rotation * alignRotation, _rotateSpeed * Time.fixedDeltaTime / 50));
     }
 
+    // Calculates the necessary acceleration to match the attached rigidbody velocity to the locked target
     private void UpdateMatchingAcceleration()
     {
-        if (matchVelocityActive && lockedTarget != null)
+        if (MatchVelocityActive && LockedTarget != null)
         {
-            Vector3 relativeVelocity = lockedTarget.Velocity - rb.velocity;
+            Vector3 relativeVelocity = LockedTarget.Velocity - Velocity;
 
-            Vector3 gravityAcc = GravitySimulation.CalculateBodyAcceleration(rb.position, lockedTarget);
-
-            matchingAcc = (relativeVelocity * Mathf.Pow((1 + relativeVelocity.magnitude), 2)) - gravityAcc;
+            _matchingAcc = relativeVelocity;
         }
         else
         {
-            matchingAcc = Vector3.zero;
+            _matchingAcc = Vector3.zero;
         }   
     }
 
+    // Updates the state of all engine particle systems relative to the engine thrust strength and direction
     private void UpdateEngines()
     {
-        Vector3 engineThrustLocal = Quaternion.Inverse(rb.rotation) * totalEngineAcc;
+        Vector3 engineThrustLocal = Quaternion.Inverse(_rb.rotation) * _totalEngineAcc;
 
-        UpdateEngineDirection(xPosEngines, xNegEngines, engineThrustLocal.x);
-        UpdateEngineDirection(yPosEngines, yNegEngines, engineThrustLocal.y);
-        UpdateEngineDirection(zPosEngines, zNegEngines, engineThrustLocal.z);
+        UpdateEngineAxis(_xPosEnginePSs, _xNegEnginePSs, engineThrustLocal.x);
+        UpdateEngineAxis(_yPosEnginePSs, _yNegEnginePSs, engineThrustLocal.y);
+        UpdateEngineAxis(_zPosEnginePSs, _zNegEnginePSs, engineThrustLocal.z);
     }
 
-    private void UpdateEngineDirection(ParticleSystem[] posEngines, ParticleSystem[] negEngines, float thrust)
+    // Updates the state of all engine particle systems in one axis relative to the given axis thrust
+    private void UpdateEngineAxis(ParticleSystem[] posEnginePSs, ParticleSystem[] negEnginePSs, float thrust)
     {
         if (thrust > 0.0001f)
         {
-            SetLifetimes(posEngines, thrust);
-            ToggleEngines(posEngines, true);
+            SetLifetimes(posEnginePSs, thrust);
+            ToggleEngines(posEnginePSs, true);
 
-            ToggleEngines(negEngines, false);
+            ToggleEngines(negEnginePSs, false);
         }
         else if (thrust < -0.0001f)
         {
-            ToggleEngines(posEngines, false);
+            ToggleEngines(posEnginePSs, false);
 
-            SetLifetimes(negEngines, -thrust);
-            ToggleEngines(negEngines, true);
+            SetLifetimes(negEnginePSs, -thrust);
+            ToggleEngines(negEnginePSs, true);
         }
+        // Engine particle systems are stopped at very small values
         else
         {
-            ToggleEngines(posEngines, false);
-            ToggleEngines(negEngines, false);
+            ToggleEngines(posEnginePSs, false);
+            ToggleEngines(negEnginePSs, false);
         }
     }
 
-    private void ToggleEngines(ParticleSystem[] engines, bool turnOn)
+    // Plays or stops the given engine particle systems depending on 'turnOn'
+    private void ToggleEngines(ParticleSystem[] enginePSs, bool turnOn)
     {
-        foreach(ParticleSystem engine in engines)
+        foreach(ParticleSystem enginePS in enginePSs)
         {
             if (turnOn)
             {
-                engine.Play();
+                enginePS.Play();
             }
             else
             {
-                engine.Stop(true, ParticleSystemStopBehavior.StopEmitting);
+                enginePS.Stop(true, ParticleSystemStopBehavior.StopEmitting);
             }
         }
     }
 
-    private void SetLifetimes(ParticleSystem[] engines, float lifetime)
+    // Sets the given engine particle systems' lifetimes
+    private void SetLifetimes(ParticleSystem[] enginePSs, float lifetime)
     {
-        foreach(ParticleSystem engine in engines)
+        foreach(ParticleSystem enginePS in enginePSs)
         {
-            ParticleSystem.MainModule main = engine.main;
+            // Main module must be stored before being accessed??
+            ParticleSystem.MainModule mainModule = enginePS.main;
 
-            main.startLifetime = lifetime;
+            mainModule.startLifetime = lifetime;
         }
     }
 
+    // Determines and returns the nearest celestial body to the attatched rigidbody
     private CelestialBody GetNearestBody()
     {
         CelestialBody nearestBody = null;
@@ -170,9 +185,9 @@ public class Spacecraft : MonoBehaviour
 
         foreach (CelestialBody body in Gravity.Instance.Bodies)
         {
-            float sqrDist = Vector3.SqrMagnitude(rb.position - body.Position);
+            float sqrDist = Vector3.SqrMagnitude(_rb.position - body.Position);
 
-            if (sqrDist < nearestSqrDist && sqrDist < Mathf.Pow(minAutoAlignDist + (body.Radius / 2), 2))
+            if (sqrDist < nearestSqrDist && sqrDist < Mathf.Pow(_minAutoAlignDist + (body.Radius / 2), 2))
             {
                 nearestSqrDist = sqrDist;
                 nearestBody = body;
@@ -182,6 +197,7 @@ public class Spacecraft : MonoBehaviour
         return nearestBody;
     }
 
+    // Determines and returns the celestial body closest to the forward direction of the main camera
     private CelestialBody GetViewedBody()
     {
         CelestialBody viewedBody = null;
@@ -192,7 +208,7 @@ public class Spacecraft : MonoBehaviour
         {
             float angle = AngleToBody(body);
 
-            if (angle < smallestAngle && angle < maxTargetAngle)
+            if (angle < smallestAngle && angle < _maxTargetAngle)
             {
                 smallestAngle = angle;
                 viewedBody = body;
@@ -202,30 +218,33 @@ public class Spacecraft : MonoBehaviour
         return viewedBody;
     }
 
+    // Calculates and returns the angle to the given celestial body from the camera forward direction
     private float AngleToBody(CelestialBody body)
     {
-        Vector3 direction = body.Position - rb.position;
+        Vector3 direction = body.Position - _cam.transform.position;
 
-        return Vector3.Angle(transform.forward, direction);
+        return Vector3.Angle(_cam.transform.forward, direction);
     }
 
     protected void AutoAlignToggle()
     {
-        autoAlignActive = !autoAlignActive;
+        AutoAlignActive = !AutoAlignActive;
     }
 
     protected void TryLockTarget()
     {
-        if(target == lockedTarget)
+        if(Target == LockedTarget)
         {
-            lockedTarget = null;
+            LockedTarget = null;
         }
         else
         {
-            lockedTarget = target;
+            LockedTarget = Target;
         }
     }
 
+    // Calculates and returns the given vector with each axis' magnitude clamped to max value
+    // Unlike Vector3.ClampMagnitude the vector axes are independently clamped
     private Vector3 ClampAxes(Vector3 vector, float maxValue)
     {
         float x = Mathf.Clamp(vector.x, -maxValue, maxValue);

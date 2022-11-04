@@ -5,21 +5,16 @@ public class Gravity : MonoBehaviour
 {
     public static Gravity Instance;
 
-    [SerializeField] private float g;
+    public Rigidbody ReferenceBody { get; private set; }
 
-    public float G { get { return g; } }
+    public CelestialBody[] Bodies { get; private set; }
 
-    [SerializeField] private Transform referenceBody;
+    public List<Rigidbody> Objects { get; private set; }
 
-    public Transform ReferenceBody { get { return referenceBody; } }
+    [Header("Gravity Settings")]
+    [SerializeField] private float _g;
 
-    private CelestialBody[] bodies;
-
-    public CelestialBody[] Bodies { get { return bodies; } }
-
-    private List<Transform> objects = new();
-
-    public List<Transform> Objects { get { return objects; } }
+    public float G { get { return _g; } }
 
     private void Awake()
     {
@@ -32,18 +27,18 @@ public class Gravity : MonoBehaviour
             Instance = this;
         }
 
-        bodies = FindObjectsOfType<CelestialBody>();
+        Bodies = FindObjectsOfType<CelestialBody>();
 
-        foreach(CelestialBody body in bodies)
+        foreach(CelestialBody body in Bodies)
         {
-            objects.Add(body.transform);
+            Objects.Add(body.GetComponent<Rigidbody>());
         }
 
         Spacecraft[] spacecrafts = FindObjectsOfType<Spacecraft>();
 
         foreach(Spacecraft spacecraft in spacecrafts)
         {
-            objects.Add(spacecraft.transform);
+            Objects.Add(spacecraft.GetComponent<Rigidbody>());
         }
     }
 }

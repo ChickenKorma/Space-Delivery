@@ -9,22 +9,14 @@ public class GravitySimulation : MonoBehaviour
             body.UpdateVelocity(CalculateGravityAcceleration(body.Position, body));
         }
 
+        // Updating positions must be done seperately for accurate gravity calculations
         foreach (CelestialBody body in Gravity.Instance.Bodies)
         {
             body.UpdatePosition();
         }
     }
 
-    private void LateUpdate()
-    {
-        Vector3 origin = Gravity.Instance.ReferenceBody.position;
-
-        foreach(Transform obj in Gravity.Instance.Objects)
-        {
-            obj.position -= origin;
-        }
-    }
-
+    // Calculates and returns the acceleration at 'position' due to gravity from all bodies except the given 'ignoreBody'
     public static Vector3 CalculateGravityAcceleration(Vector3 position, CelestialBody ignoreBody = null)
     {
         Vector3 acceleration = Vector3.zero;
@@ -40,6 +32,7 @@ public class GravitySimulation : MonoBehaviour
         return acceleration;
     }
 
+    // Calculates and returns the acceleration at 'position' due to gravity from 'body'
     public static Vector3 CalculateBodyAcceleration(Vector3 position, CelestialBody body)
     {
         Vector3 direction = body.Position - position;

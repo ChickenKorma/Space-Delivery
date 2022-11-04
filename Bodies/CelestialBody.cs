@@ -4,35 +4,36 @@ using UnityEngine;
 [RequireComponent(typeof(LineRenderer))]
 public class CelestialBody : MonoBehaviour
 {
-    [SerializeField] private float surfaceGravity;
+    protected Rigidbody _rb;
 
-    public float Radius { get { return transform.localScale.x; } }
+    [Header("Body Data")]
+    [SerializeField] private float _surfaceGravity;
 
-    public float Mass { get { return rb.mass; } }
+    public float Radius { get { return transform.localScale.x / 2; } }
+    public float Mass { get { return _rb.mass; } }
 
-    [SerializeField] private Vector3 initialVelocity;
-    [SerializeField] private Vector3 initialAngularVelocity;
+    [Header("Body State")]
+    [SerializeField] private Vector3 _initialVelocity;
+    [SerializeField] private Vector3 _initialAngularVelocity;
 
-    private Vector3 velocity;
+    public Vector3 Velocity { get; private set; }
 
-    public Vector3 Velocity { get { return velocity; } }
-
-    public Vector3 Position { get { return rb.position; } }
-
-    protected Rigidbody rb;
+    public Vector3 Position { get { return _rb.position; } }
+    
 
     private void Awake()
     {
-        rb = GetComponent<Rigidbody>();
+        _rb = GetComponent<Rigidbody>();
 
-        rb.mass = surfaceGravity * Radius * Radius / Gravity.Instance.G;
+        // Find and set the mass needed for the given surface gravity at the body's radius
+        _rb.mass = _surfaceGravity * Radius * Radius / Gravity.Instance.G;
 
-        velocity = initialVelocity;
+        _rb.angularVelocity = _initialAngularVelocity * Mathf.Deg2Rad;
 
-        rb.angularVelocity = initialAngularVelocity * Mathf.Deg2Rad;
+        Velocity = _initialVelocity;
     }
 
-    public virtual void UpdateVelocity(Vector3 acceleration) => velocity += acceleration * Time.fixedDeltaTime;
+    public virtual void UpdateVelocity(Vector3 acceleration) => Velocity += acceleration * Time.fixedDeltaTime;
 
-    public virtual void UpdatePosition() => rb.MovePosition(rb.position + (velocity * Time.fixedDeltaTime));
+    public virtual void UpdatePosition() => _rb.MovePosition(Position + (Velocity * Time.fixedDeltaTime));
 }

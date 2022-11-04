@@ -27,15 +27,15 @@ public class PlayerSpacecraft : Spacecraft
         InputManager.Instance.matchVelocityEvent -= OnMatchVelocity;
     }
 
-    private void OnThrustInput(Vector3 input) => thrustAcc = input;
+    private void OnThrustInput(Vector3 input) => _thrustAcc = input;
 
-    private void OnRotateInput(Vector2 input) => torqueAcc = new Vector3(input.y, input.x, torqueAcc.z);
+    private void OnRotateInput(Vector2 input) => _torqueAcc = new Vector3(input.y, input.x, _torqueAcc.z);
 
-    private void OnRollInput(float input) => torqueAcc = new Vector3(torqueAcc.x, torqueAcc.y, input);
+    private void OnRollInput(float input) => _torqueAcc = new Vector3(_torqueAcc.x, _torqueAcc.y, input);
 
     private void OnAutoAlignToggle() => AutoAlignToggle();
 
     private void OnTargetLock() => TryLockTarget();
 
-    private void OnMatchVelocity(bool state) => matchVelocityActive = state;
+    private void OnMatchVelocity(bool state) => MatchVelocityActive = state;
 }

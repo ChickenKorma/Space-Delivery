@@ -2,84 +2,81 @@ using UnityEngine;
 
 public class OrbitDraw : MonoBehaviour
 {
-    [SerializeField] private bool draw;
+    [SerializeField] private float _totalTime;
+    [SerializeField] private float _timeStep;
 
-    [SerializeField] private float totalTime;
-    [SerializeField] private float timeStep;
+    private int _steps;
 
-    private int steps;
+    private VirtualBody[] _vBodies;
 
-    private VirtualBody[] vBodies;
-
-    private VirtualBody referenceBody;
+    private VirtualBody _vReferenceBody;
 
     private void Awake()
     {
-        steps = (int) (totalTime / timeStep);
+        // Calculate total number of steps in the simulation
+        _steps = (int) (_totalTime / _timeStep);
 
-        vBodies = new VirtualBody[Gravity.Instance.Bodies.Length];
+        _vBodies = new VirtualBody[Gravity.Instance.Bodies.Length];
 
-        for (int i = 0; i < vBodies.Length; i++)
+        for (int i = 0; i < _vBodies.Length; i++)
         {
             CelestialBody body = Gravity.Instance.Bodies[i];
 
-            bool draw = !body.Equals(Gravity.Instance.ReferenceBody);
+            bool isReferenceBody = body.Equals(Gravity.Instance.ReferenceBody);
 
-            vBodies[i] = new VirtualBody(body, steps, draw);
+            _vBodies[i] = new VirtualBody(body, _steps, !isReferenceBody);
 
-            if (body.transform == Gravity.Instance.ReferenceBody)
+            if (isReferenceBody)
             {
-                referenceBody = vBodies[i];
+                _vReferenceBody = _vBodies[i];
             }
         }
     }
 
-    private void FixedUpdate()
+    private void Start()
     {
-        if (draw)
-        {
-            DrawPaths();
-
-            draw = false;
-        }
+        DrawOrbits();
     }
 
-    private void DrawPaths()
+    // Draws the orbit paths of each celestial body
+    private void DrawOrbits()
     {
-        foreach (VirtualBody vBody in vBodies)
+        foreach (VirtualBody vBody in _vBodies)
         {
             vBody.Reset();
         }
 
-        for (int step = 0; step < steps; step++)
+        for (int step = 0; step < _steps; step++)
         {
-            foreach(VirtualBody vBody in vBodies)
+            foreach(VirtualBody vBody in _vBodies)
             {
-                vBody.UpdateVelocity(CalculateGravityAcceleration(vBody), timeStep);
+                vBody.UpdateVelocity(CalculateGravityAcceleration(vBody), _timeStep);
             }
 
-            referenceBody.UpdatePosition(referenceBody, timeStep, step);
+            // Updates reference body position first so all other relative positions are accurate
+            _vReferenceBody.UpdatePosition(_vReferenceBody, _timeStep, step);
 
-            foreach (VirtualBody vBody in vBodies)
+            foreach (VirtualBody vBody in _vBodies)
             {
-                if (!vBody.Equals(referenceBody))
+                if (!vBody.Equals(_vReferenceBody))
                 {
-                    vBody.UpdatePosition(referenceBody, timeStep, step);
+                    vBody.UpdatePosition(_vReferenceBody, _timeStep, step);
                 }
             }
         }
 
-        foreach (VirtualBody vBody in vBodies)
+        foreach (VirtualBody vBody in _vBodies)
         {
             vBody.DrawPath();
         }
     }
 
+    // Calculate the acceleration of 'thisBody' due to gravity by all other bodies
     private Vector3 CalculateGravityAcceleration(VirtualBody thisBody)
     {
         Vector3 acceleration = Vector3.zero;
 
-        foreach (VirtualBody otherBody in vBodies)
+        foreach (VirtualBody otherBody in _vBodies)
         {
             if (!thisBody.Equals(otherBody))
             {
@@ -94,60 +91,60 @@ public class OrbitDraw : MonoBehaviour
     }
 }
 
+// Constructed from a celestial body, stores state of body for virtual simulation and draws positions via line renderer
 class VirtualBody
 {
-    private CelestialBody body;
+    private readonly CelestialBody _celestialBody;
 
-    private Vector3 position;
+    public Vector3 Position { get; private set; }
 
-    public Vector3 Position { get { return position; } }
+    private Vector3 _velocity;
 
-    private Vector3 velocity;
+    private Vector3[] _orbitPoints;
 
-    private Vector3[] orbitPoints;
+    public float Mass { get; private set; }
 
-    private float mass;
+    private readonly LineRenderer _lineRenderer;
 
-    public float Mass { get { return mass; } }
+    private readonly bool _draw;
 
-    private LineRenderer lineRenderer;
-
-    private bool draw;
-
-    public VirtualBody(CelestialBody body, int steps, bool draw)
+    public VirtualBody(CelestialBody celestialBody, int steps, bool draw)
     {
-        this.body = body;
+        _celestialBody = celestialBody;
 
-        lineRenderer = body.GetComponent<LineRenderer>();
+        _lineRenderer = _celestialBody.GetComponent<LineRenderer>();
 
-        orbitPoints = new Vector3[steps];
-        lineRenderer.positionCount = orbitPoints.Length;
+        _orbitPoints = new Vector3[steps];
+        _lineRenderer.positionCount = _orbitPoints.Length;
 
-        this.draw = draw;
+        _draw = draw;
     }
 
+    // Sets virtual body to equal current state of celestial body
     public void Reset()
     {
-        position = body.Position;
-        velocity = body.Velocity;
+        Position = _celestialBody.Position;
+        _velocity = _celestialBody.Velocity;
 
-        mass = body.Mass;
+        Mass = _celestialBody.Mass;
     }
 
-    public void UpdateVelocity(Vector3 acceleration, float deltaTime) => velocity += acceleration * deltaTime;
+    public void UpdateVelocity(Vector3 acceleration, float deltaTime) => _velocity += acceleration * deltaTime;
 
-    public void UpdatePosition(VirtualBody referenceBody, float deltaTime, int drawStep)
+    public void UpdatePosition(VirtualBody vReferenceBody, float deltaTime, int drawStep)
     {
-        position += velocity * deltaTime;
+        Position += _velocity * deltaTime;
 
-        orbitPoints[drawStep] = position - referenceBody.Position;
+        // Makes position relative to reference body
+        _orbitPoints[drawStep] = Position - vReferenceBody.Position;
     }
 
+    // Sets the points of the line renderer equal to the stored positions if drawing is enabled for this body
     public void DrawPath()
     {
-        if (draw)
+        if (_draw)
         {
-            lineRenderer.SetPositions(orbitPoints);
+            _lineRenderer.SetPositions(_orbitPoints);
         }
     }
 }

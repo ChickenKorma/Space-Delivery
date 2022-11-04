@@ -6,7 +6,7 @@ public class InputManager : MonoBehaviour
 {
     public static InputManager Instance { get; private set; }
 
-    private PlayerInputActions playerInputActions;
+    private PlayerInputActions _playerInputActions;
 
     public Action<Vector3> thrustEvent = delegate { };
 
@@ -18,6 +18,8 @@ public class InputManager : MonoBehaviour
     public Action targetLockEvent = delegate { };
 
     public Action<bool> matchVelocityEvent = delegate { };
+
+    public Action<bool> recenterCameraEvent = delegate { };
 
     private void Awake()
     {
@@ -33,53 +35,61 @@ public class InputManager : MonoBehaviour
 
     private void OnEnable()
     {
-        playerInputActions = new PlayerInputActions();
-        playerInputActions.Enable();
+        _playerInputActions = new PlayerInputActions();
+        _playerInputActions.Enable();
 
-        playerInputActions.Game.Thrust.started += OnThrust;
-        playerInputActions.Game.Thrust.performed += OnThrust;
-        playerInputActions.Game.Thrust.canceled += OnThrust;
+        _playerInputActions.Game.Thrust.started += OnThrust;
+        _playerInputActions.Game.Thrust.performed += OnThrust;
+        _playerInputActions.Game.Thrust.canceled += OnThrust;
 
-        playerInputActions.Game.Rotate.started += OnRotate;
-        playerInputActions.Game.Rotate.performed += OnRotate;
-        playerInputActions.Game.Rotate.canceled += OnRotate;
+        _playerInputActions.Game.Rotate.started += OnRotate;
+        _playerInputActions.Game.Rotate.performed += OnRotate;
+        _playerInputActions.Game.Rotate.canceled += OnRotate;
 
-        playerInputActions.Game.Roll.started += OnRoll;
-        playerInputActions.Game.Roll.performed += OnRoll;
-        playerInputActions.Game.Roll.canceled += OnRoll;
+        _playerInputActions.Game.Roll.started += OnRoll;
+        _playerInputActions.Game.Roll.performed += OnRoll;
+        _playerInputActions.Game.Roll.canceled += OnRoll;
 
-        playerInputActions.Game.AutoAlign.performed += OnAutoAlign;
+        _playerInputActions.Game.AutoAlign.performed += OnAutoAlign;
 
-        playerInputActions.Game.TargetLock.performed += OnTargetLock;
+        _playerInputActions.Game.TargetLock.performed += OnTargetLock;
 
-        playerInputActions.Game.MatchVelocity.started += OnMatchVelocity;
-        playerInputActions.Game.MatchVelocity.performed += OnMatchVelocity;
-        playerInputActions.Game.MatchVelocity.canceled += OnMatchVelocity;
+        _playerInputActions.Game.MatchVelocity.started += OnMatchVelocity;
+        _playerInputActions.Game.MatchVelocity.performed += OnMatchVelocity;
+        _playerInputActions.Game.MatchVelocity.canceled += OnMatchVelocity;
+
+        _playerInputActions.Game.RecenterCamera.performed += OnRecenterCamera;
+
+        _playerInputActions.Game.Look.started += OnLook;
     }
 
     private void OnDisable()
     {
-        playerInputActions.Game.Thrust.started -= OnThrust;
-        playerInputActions.Game.Thrust.performed -= OnThrust;
-        playerInputActions.Game.Thrust.canceled -= OnThrust;
+        _playerInputActions.Game.Thrust.started -= OnThrust;
+        _playerInputActions.Game.Thrust.performed -= OnThrust;
+        _playerInputActions.Game.Thrust.canceled -= OnThrust;
 
-        playerInputActions.Game.Rotate.started -= OnRotate;
-        playerInputActions.Game.Rotate.performed -= OnRotate;
-        playerInputActions.Game.Rotate.canceled -= OnRotate;
+        _playerInputActions.Game.Rotate.started -= OnRotate;
+        _playerInputActions.Game.Rotate.performed -= OnRotate;
+        _playerInputActions.Game.Rotate.canceled -= OnRotate;
 
-        playerInputActions.Game.Roll.started -= OnRoll;
-        playerInputActions.Game.Roll.performed -= OnRoll;
-        playerInputActions.Game.Roll.canceled -= OnRoll;
+        _playerInputActions.Game.Roll.started -= OnRoll;
+        _playerInputActions.Game.Roll.performed -= OnRoll;
+        _playerInputActions.Game.Roll.canceled -= OnRoll;
 
-        playerInputActions.Game.AutoAlign.performed -= OnAutoAlign;
+        _playerInputActions.Game.AutoAlign.performed -= OnAutoAlign;
 
-        playerInputActions.Game.TargetLock.performed -= OnTargetLock;
+        _playerInputActions.Game.TargetLock.performed -= OnTargetLock;
 
-        playerInputActions.Game.MatchVelocity.started -= OnMatchVelocity;
-        playerInputActions.Game.MatchVelocity.performed -= OnMatchVelocity;
-        playerInputActions.Game.MatchVelocity.canceled -= OnMatchVelocity;
+        _playerInputActions.Game.MatchVelocity.started -= OnMatchVelocity;
+        _playerInputActions.Game.MatchVelocity.performed -= OnMatchVelocity;
+        _playerInputActions.Game.MatchVelocity.canceled -= OnMatchVelocity;
 
-        playerInputActions.Disable();
+        _playerInputActions.Game.RecenterCamera.performed -= OnRecenterCamera;
+
+        _playerInputActions.Game.Look.started -= OnLook;
+
+        _playerInputActions.Disable();
     }
 
     private void OnThrust(InputAction.CallbackContext context) => thrustEvent.Invoke(context.ReadValue<Vector3>());
@@ -93,4 +103,8 @@ public class InputManager : MonoBehaviour
     private void OnTargetLock(InputAction.CallbackContext context) => targetLockEvent.Invoke();
 
     private void OnMatchVelocity(InputAction.CallbackContext context) => matchVelocityEvent.Invoke(!context.canceled);
+
+    private void OnRecenterCamera(InputAction.CallbackContext context) => recenterCameraEvent.Invoke(true);
+
+    private void OnLook(InputAction.CallbackContext context) => recenterCameraEvent.Invoke(false);
 }
