@@ -80,30 +80,19 @@ public class SpacecraftHUD : MonoBehaviour
 
         reticleRT.position = screenPos;
 
-        // Calculate reticle size as proportional to the angular size of the target body as seen from teh camera
-        float size = Mathf.Clamp(Mathf.Atan2(targetBody.Radius, Vector3.Distance(targetBody.Position, _cam.transform.position)) * 35f * Mathf.Rad2Deg, 80, 900);
+        // Calculate reticle size as proportional to the angular size of the target body as seen from the camera
+        float size = Mathf.Clamp(Mathf.Atan2(targetBody.Radius, Vector3.Distance(targetBody.Position, _cam.transform.position)) * 60f * Mathf.Rad2Deg, 80, 900);
 
         reticleRT.sizeDelta = new Vector2(size, size);
     }
 
-    // Calculates the relative velocity to the locked target in 3 local axes and updates the horizontal/vertical velocity markers and the relative velocity text
+    // Updates horizontal and vertical arrows and forward velocity text depending on current relative velocity of spacecraft
     private void UpdateVelocityMarkers()
     {
-        Vector3 targetForward = (_spacecraft.LockedTarget.Position - _spacecraft.transform.position).normalized; // pointed towards the locked target
-        Vector3 targetHorizontal = Vector3.Cross(targetForward, _spacecraft.transform.up).normalized; // perpendicular to forward direction and spacecraft up
-        Vector3 targetVertical = Vector3.Cross(targetForward, _spacecraft.transform.right).normalized; // perpendicular to forward direction and spacecraft right
+        UpdateMarker(_horizontalVelocityLineRT, _spacecraft.RelativeVelocity.x);
+        UpdateMarker(_verticalVelocityLineRT, _spacecraft.RelativeVelocity.y);
 
-        Vector3 relativeVelocityWorld = _spacecraft.LockedTarget.Velocity - _spacecraft.Velocity;
-
-        // Calculate the contribution to the relative velocity in each axis
-        float x = -Vector3.Dot(relativeVelocityWorld, targetHorizontal);
-        float y = Vector3.Dot(relativeVelocityWorld, targetVertical);
-        float z = -Vector3.Dot(relativeVelocityWorld, targetForward);
-
-        UpdateMarker(_horizontalVelocityLineRT, x);
-        UpdateMarker(_verticalVelocityLineRT, y);
-
-        relativeVelocityText.text = z.ToString("F0") + "m/s";
+        relativeVelocityText.text = _spacecraft.RelativeVelocity.z.ToString("F0") + "m/s";
     }
 
     // Sets the size and direction of the given line transform depending on the given value

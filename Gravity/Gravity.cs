@@ -5,13 +5,13 @@ public class Gravity : MonoBehaviour
 {
     public static Gravity Instance;
 
-    public Rigidbody ReferenceBody { get; private set; }
+    [SerializeField] Rigidbody referenceBodyRB;
+    public Rigidbody ReferenceBodyRB { get { return referenceBodyRB; } }
 
     public CelestialBody[] Bodies { get; private set; }
 
     public List<Rigidbody> Objects { get; private set; }
 
-    [Header("Gravity Settings")]
     [SerializeField] private float _g;
 
     public float G { get { return _g; } }
@@ -28,6 +28,8 @@ public class Gravity : MonoBehaviour
         }
 
         Bodies = FindObjectsOfType<CelestialBody>();
+
+        Objects = new();
 
         foreach(CelestialBody body in Bodies)
         {

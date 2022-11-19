@@ -10,6 +10,8 @@ public class Spacecraft : MonoBehaviour
     protected Vector3 _thrustAcc;
     private Vector3 _matchingAcc;
 
+    public Vector3 RelativeVelocity { get; private set; }
+
     protected Vector3 _torqueAcc;
 
     public CelestialBody Target { get; private set; }
@@ -64,7 +66,7 @@ public class Spacecraft : MonoBehaviour
 
         Target = GetViewedBody();
 
-        UpdateMatchingAcceleration();
+        UpdateRelativeVelocity();
 
         UpdatePhysics();
     }
@@ -72,7 +74,8 @@ public class Spacecraft : MonoBehaviour
     // Calculates and applies the total acceleration to the attatched rigidbody, sum of the engien thrust and gravity
     private void UpdatePhysics()
     {
-        _totalEngineAcc = ClampAxes(_matchingAcc + (_rb.rotation * _thrustAcc), 1f);
+        _totalEngineAcc = _thrustAcc - (MatchVelocityActive ? RelativeVelocity : Vector3.zero);
+        _totalEngineAcc = _rb.rotation * ClampAxes(_totalEngineAcc, 1f);
 
         Vector3 totalAcceleration = GravitySimulation.CalculateGravityAcceleration(_rb.position) + _totalEngineAcc * _thrustStrength;
 
@@ -98,19 +101,28 @@ public class Spacecraft : MonoBehaviour
         _rb.MoveRotation(Quaternion.Lerp(_rb.rotation, _rb.rotation * alignRotation, _rotateSpeed * Time.fixedDeltaTime / 50));
     }
 
-    // Calculates the necessary acceleration to match the attached rigidbody velocity to the locked target
-    private void UpdateMatchingAcceleration()
+    // Calculates the relative velocity between the 
+    private void UpdateRelativeVelocity()
     {
-        if (MatchVelocityActive && LockedTarget != null)
+        if(LockedTarget != null)
         {
-            Vector3 relativeVelocity = LockedTarget.Velocity - Velocity;
+            Vector3 forward = (LockedTarget.Position - transform.position).normalized; // pointed towards the locked target
+            Vector3 right = Vector3.Cross(forward, transform.up).normalized; // perpendicular to forward direction and spacecraft up
+            Vector3 up = Vector3.Cross(forward, right).normalized; // perpendicular to forward direction and spacecraft right
 
-            _matchingAcc = relativeVelocity;
+            Vector3 relativeVelocityWorld = LockedTarget.Velocity - Velocity;
+
+            // Calculate the contribution to the relative velocity in each axis
+            float x = Vector3.Dot(relativeVelocityWorld, right);
+            float y = Vector3.Dot(relativeVelocityWorld, up);
+            float z = -Vector3.Dot(relativeVelocityWorld, forward);
+
+            RelativeVelocity = new Vector3(x, y, z);
         }
         else
         {
-            _matchingAcc = Vector3.zero;
-        }   
+            RelativeVelocity = Vector3.zero;
+        }
     }
 
     // Updates the state of all engine particle systems relative to the engine thrust strength and direction
@@ -126,14 +138,14 @@ public class Spacecraft : MonoBehaviour
     // Updates the state of all engine particle systems in one axis relative to the given axis thrust
     private void UpdateEngineAxis(ParticleSystem[] posEnginePSs, ParticleSystem[] negEnginePSs, float thrust)
     {
-        if (thrust > 0.0001f)
+        if (thrust > 0.02f)
         {
             SetLifetimes(posEnginePSs, thrust);
             ToggleEngines(posEnginePSs, true);
 
             ToggleEngines(negEnginePSs, false);
         }
-        else if (thrust < -0.0001f)
+        else if (thrust < -0.02f)
         {
             ToggleEngines(posEnginePSs, false);
 

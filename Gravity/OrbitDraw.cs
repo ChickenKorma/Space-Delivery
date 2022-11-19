@@ -22,7 +22,7 @@ public class OrbitDraw : MonoBehaviour
         {
             CelestialBody body = Gravity.Instance.Bodies[i];
 
-            bool isReferenceBody = body.Equals(Gravity.Instance.ReferenceBody);
+            bool isReferenceBody = body.Equals(Gravity.Instance.ReferenceBodyRB);
 
             _vBodies[i] = new VirtualBody(body, _steps, !isReferenceBody);
 
